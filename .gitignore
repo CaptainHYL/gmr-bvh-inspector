@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.bvh-inspector/
+*.bvh
+*.pkl
+*.mp4
+.DS_Store

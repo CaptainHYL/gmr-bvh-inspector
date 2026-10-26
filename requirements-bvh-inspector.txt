@@ -1,0 +1,7 @@
+# Optional standalone viewer dependencies. Install in the environment used to run it.
+numpy>=1.24,<3
+scipy>=1.10,<2
+PySide6-Essentials>=6.7,<7
+pyvista>=0.46,<0.47
+pyvistaqt>=0.11,<0.12
+vtk>=9.3,<9.6
