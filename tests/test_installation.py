@@ -99,6 +99,35 @@ class InstallationTests(unittest.TestCase):
             installer.deploy_files({"scripts/link/other.py": b"data"}, self.target)
         self.assertFalse((outside / "other.py").exists())
 
+    @unittest.skipIf(os.name == "nt", "Bash bootstrap")
+    def test_short_bootstrap_selects_conda_forwards_options_and_cleans_up(self):
+        bin_dir = Path(self.temporary.name) / "bin"
+        bin_dir.mkdir()
+        curl = bin_dir / "curl"
+        curl.write_text('#!/usr/bin/env bash\ncp "$BVH_TEST_INSTALLER" "${@: -1}"\n')
+        conda = bin_dir / "conda"
+        conda.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$*" > "$BVH_TEST_CONDA_LOG"\n'
+                         'shift 5\nexec "$BVH_TEST_PYTHON" "$@"\n')
+        curl.chmod(0o755)
+        conda.chmod(0o755)
+        log = Path(self.temporary.name) / "conda.log"
+        environment = dict(os.environ, PATH=str(bin_dir) + os.pathsep + os.environ["PATH"],
+                           TMPDIR=self.temporary.name, BVH_INSPECTOR_PYTHON="",
+                           BVH_INSPECTOR_ENV="custom-gmr", BVH_TEST_INSTALLER=str(ROOT / "install.py"),
+                           BVH_TEST_CONDA_LOG=str(log), BVH_TEST_PYTHON=sys.executable)
+        command = ["bash", str(ROOT / "install.sh"), "--source-dir", str(ROOT),
+                   "--target", str(self.target), "--skip-deps"]
+        subprocess.run(command, env=environment, check=True, capture_output=True, text=True)
+        self.assertTrue(log.read_text().startswith("run --no-capture-output -n custom-gmr python "))
+        self.assertTrue((self.target / "scripts/install_bvh_inspector.sh").is_file())
+        self.assertFalse(list(Path(self.temporary.name).glob("gmr-bvh-install.*")))
+        log.unlink()
+        curl.write_text("#!/usr/bin/env bash\nexit 22\n")
+        result = subprocess.run(command, env=environment, capture_output=True)
+        self.assertEqual(result.returncode, 22)
+        self.assertFalse(log.exists())
+        self.assertFalse(list(Path(self.temporary.name).glob("gmr-bvh-install.*")))
+
 
 if __name__ == "__main__":
     unittest.main()

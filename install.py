@@ -35,6 +35,7 @@ FILE_MAP = {
     "README.md": "docs/BVH_INSPECTOR_DEPLOYMENT.md",
     "LICENSE": "docs/BVH_INSPECTOR_LICENSE.txt",
     "install.py": "scripts/install_bvh_inspector.py",
+    "install.sh": "scripts/install_bvh_inspector.sh",
 }
 
 
