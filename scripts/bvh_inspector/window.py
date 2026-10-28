@@ -156,8 +156,13 @@ class BVHInspector(QtWidgets.QMainWindow):
 
         options = QtWidgets.QHBoxLayout()
         self.reset_button = QtWidgets.QPushButton("重置视角")
+        self.reset_button.setToolTip("将当前帧骨架居中，并从正面观察。")
         self.reset_button.clicked.connect(self.reset_camera)
         options.addWidget(self.reset_button)
+        self.initial_reset_button = QtWidgets.QPushButton("恢复初始正面")
+        self.initial_reset_button.setToolTip("暂停播放，回到第 1 帧，并恢复初始正面视角。")
+        self.initial_reset_button.clicked.connect(self.restore_initial_pose)
+        options.addWidget(self.initial_reset_button)
         self.names_check = QtWidgets.QCheckBox("关节名称")
         self.axes_check = QtWidgets.QCheckBox("选中坐标轴")
         self.axes_check.setChecked(True)
@@ -303,7 +308,7 @@ class BVHInspector(QtWidgets.QMainWindow):
 
     def _set_controls_enabled(self, enabled):
         for control in (self.prev_button, self.play_button, self.next_button, self.slider,
-                        self.frame_spin, self.reset_button, self.names_check, self.axes_check,
+                        self.frame_spin, self.reset_button, self.initial_reset_button, self.names_check, self.axes_check,
                         self.ends_check, self.follow_check, self.tree, self.search, self.reference_combo):
             control.setEnabled(enabled)
         if enabled and self.motion.frame_count == 1:
@@ -620,6 +625,15 @@ class BVHInspector(QtWidgets.QMainWindow):
         self._last_root = None
         self._build_grid()
         self._refresh_display()
+        self.reset_camera()
+
+    def restore_initial_pose(self):
+        """Pause and restore frame one and its front view, retaining UI settings."""
+        if self.motion is None or self._loader is not None:
+            return
+        self.pause()
+        self._last_root = None
+        self._set_frame(0)
         self.reset_camera()
 
     def reset_camera(self):

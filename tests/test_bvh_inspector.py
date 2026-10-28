@@ -445,6 +445,50 @@ class WindowTests(unittest.TestCase):
             toward_camera = np.array(camera.position) - camera.focal_point
             np.testing.assert_allclose(toward_camera / np.linalg.norm(toward_camera), front, atol=1e-12)
 
+    def test_initial_front_button_resets_playback_and_camera_but_keeps_selection_and_settings(self):
+        self.path.write_text(FIXTURE.replace("Frames: 2", "Frames: 3") + FIXTURE.splitlines()[-1] + "\n")
+        motion = load_bvh(self.path)
+        frames_before = motion.frames.copy()
+        for hide_fingers in (False, True):
+            with self.subTest(hide_fingers=hide_fingers):
+                self.window.close()
+                self.window = self.Window(scale=1, up_axis="z", hide_fingers=hide_fingers)
+                self.window.show()
+                self.window.set_motion(motion)
+                self.QtTest.QTest.qWait(30)
+                self.window.select_joint(1)
+                self.window.names_check.setChecked(True)
+                self.window.ends_check.setChecked(False)
+                self.window.reference_combo.setCurrentIndex(1)
+                self.window.follow_check.setChecked(True)
+                self.window.speed_combo.setCurrentIndex(1)
+                self.window.loop_check.setChecked(True)
+                self.window.reset_camera()
+                camera = self.window.plotter.camera
+                initial_camera = np.array([camera.position, camera.focal_point, camera.up])
+                self.window.seek(1)
+                self.window.toggle_play()
+                self.assertTrue(self.window._playing)
+                camera.azimuth += 60
+                camera.elevation += 20
+                camera.position = np.array(camera.position) + [1, 2, 3]
+                camera.focal_point = np.array(camera.focal_point) + [1, 2, 3]
+                self.QtTest.QTest.mouseClick(self.window.initial_reset_button, self.QtCore.Qt.MouseButton.LeftButton)
+                self.assertEqual(self.window.frame, 0)
+                self.assertEqual(self.window.slider.value(), 0)
+                self.assertEqual(self.window.frame_spin.value(), 1)
+                self.assertFalse(self.window._playing)
+                self.assertFalse(self.window.timer.isActive())
+                self.assertEqual(self.window.selected, 1)
+                self.assertTrue(self.window.names_check.isChecked())
+                self.assertFalse(self.window.ends_check.isChecked())
+                self.assertTrue(self.window.follow_check.isChecked())
+                self.assertEqual(self.window.reference_combo.currentIndex(), 1)
+                self.assertEqual(self.window.speed_combo.currentIndex(), 1)
+                self.assertTrue(self.window.loop_check.isChecked())
+                np.testing.assert_allclose([camera.position, camera.focal_point, camera.up], initial_camera, atol=1e-12)
+                np.testing.assert_array_equal(motion.frames, frames_before)
+
 
 if __name__ == "__main__":
     unittest.main()
